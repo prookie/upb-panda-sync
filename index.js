@@ -3,6 +3,8 @@ const argv = require('yargs').argv;
 const request = require('superagent');
 const cheerio = require('cheerio');
 const sanitize = require('sanitize-filename');
+const fs = require('fs');
+const path = require('path');
 
 
 const baseUrl = 'https://panda.uni-paderborn.de';
@@ -38,7 +40,8 @@ getCourses().then(courses => {
                 getFiles(folder).then(files => {
                     files.forEach(file => {
                         //console.log('DOWNLOAD: course ' + course + ' / folder ' + folder + ' / file ' + file.file);
-                        console.log('DOWNLOAD: ' + file.course + ' / ' + file.folder + ' / ' + file.file);
+                        //console.log('DOWNLOAD: ' + file.course + ' / ' + file.folder + ' / ' + file.file);
+                        downloadFile(file.url, syncDirectory + '/' + file.course + '/' + file.folder + '/' + file.file);
                     });
                 });
             });
@@ -267,6 +270,36 @@ function performSessionKeepalive() {
         });
 }
 
+
+function downloadFile(url, destination) {
+    console.log('DOWNLOAD: ' + url + ' INTO ' + destination);
+
+    ensureDirectoryExistence(destination);
+
+    return new Promise((resolve, reject) => {
+        const fileStream = fs.createWriteStream(destination);
+
+        request.get(url)
+            .set('Cookie', getSessionCookie())
+            .timeout({
+                response: 30 * 1000,
+                deadline: 60 * 1000
+            })
+            .pipe(fileStream);
+    });
+}
+
+/**
+ * Shamelessly copied from https://stackoverflow.com/a/34509653
+ */
+function ensureDirectoryExistence(filePath) {
+    const dirname = path.dirname(filePath);
+    if( fs.existsSync(dirname) ) {
+        return true;
+    }
+    ensureDirectoryExistence(dirname);
+    fs.mkdirSync(dirname);
+}
 
 function handleResponseCatch(err) {
     console.log(err.response.request.url);
