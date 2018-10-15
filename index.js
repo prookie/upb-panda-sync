@@ -2,7 +2,7 @@ require('dotenv').config();
 const argv = require('yargs').argv;
 const request = require('superagent');
 const cheerio = require('cheerio');
-const querystring = require('querystring');
+const sanitize = require('sanitize-filename');
 
 
 const baseUrl = 'https://panda.uni-paderborn.de';
@@ -98,7 +98,6 @@ function extractCoursesFromResponse(responseBody) {
         .map((i, elem) => $(elem).attr('href')) // cheerio/jQuery map function!
         .toArray()
         .filter(url => urlTestRegex.test(url))
-        //.map(url => querystring.parse(url.split('?')[1])['id']);
         .map(url => parseInt(urlTestRegex.exec(url)[1]));
 
     // filter out possible duplicates
@@ -154,7 +153,6 @@ function extractFoldersFromResponse(responseBody) {
         .map((i, elem) => $(elem).attr('href')) // cheerio/jQuery map function!
         .toArray()
         .filter(url => urlTestRegex.test(url))
-        //.map(url => querystring.parse(url.split('?')[1])['id']);
         .map(url => parseInt(urlTestRegex.exec(url)[1]));
 
     // filter out possible duplicates
@@ -204,8 +202,8 @@ function extractFilesFromResponse(responseBody) {
     const urlTestRegex = /\/pluginfile\.php\/(?:[^/]+)\/mod_folder\/content(?:.*)\/([^/?]+)(?:\?.*)?$/i;
     const $ = cheerio.load(responseBody);
 
-    let   course = $('#page-header .page-header-headings').text();
-    const folder = $('#page-header .breadcrumb-item').last().text(); // not sure if working in all situations (robustness)
+    let course = $('#page-header .page-header-headings').text();
+    let folder = $('#page-header .breadcrumb-item').last().text(); // not sure if working in all situations (robustness)
 
     if( !course ) {
         console.log("WARNING - course name is empty (tried selector $('#page-header .page-header-headings') on folder page)");
@@ -214,12 +212,17 @@ function extractFilesFromResponse(responseBody) {
         if( purifyCourseNamesFlag ) {
             course = purifyCourseNameRegex.exec(course)[1];
         }
+
+        course = sanitize(course);
     }
     if( !folder ) {
         console.log("WARNING - folder name is empty (tried selector $('#page-header .breadcrumb-item').last() on folder page)");
     }
+    else {
+        folder = sanitize(folder);
+    }
 
-    let folderIds = $('#region-main .foldertree a')
+    let folderUrls = $('#region-main .foldertree a')
         .map((i, elem) => $(elem).attr('href')) // cheerio/jQuery map function!
         .toArray()
         //.map(elem => {console.log('MATCH ' + elem); return elem})
@@ -228,18 +231,18 @@ function extractFilesFromResponse(responseBody) {
         //.map(url => parseInt(urlTestRegex.exec(url)[1]));
 
     // filter out possible duplicates
-    folderIds = folderIds.filter((elem, pos) => folderIds.indexOf(elem) == pos);
+    folderUrls = folderUrls.filter((elem, pos) => folderUrls.indexOf(elem) == pos);
 
-    folderIds = folderIds.map(url => {
+    const folders = folderUrls.map(url => {
         return {
-            'file': urlTestRegex.exec(url)[1],
+            'file': sanitize(urlTestRegex.exec(url)[1]),
             url,
             folder,
             course
         }
     });
 
-    return folderIds;
+    return folders;
 }
 
 function performSessionKeepalive() {
