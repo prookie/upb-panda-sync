@@ -1,0 +1,11 @@
+1) selector to find course links on "desktop", maybe needs more implementation for paginated list (if long enough):
+#myoverview_courses_view_in_progress .courses-view-course-item > a
+
+2) selector find folder links on course page:
+#region-main .course-content .activity.folder a
+
+3) selector to find file links on folder page:
+#region-main .foldertree a
+
+
+< all need regex filtering >

@@ -1,0 +1,14 @@
+{
+  "name": "upb-panda-sync",
+  "version": "0.1.0",
+  "main": "index.js",
+  "repository": "git@github.com:prookie/upb-panda-sync.git",
+  "author": "Prookie <prookie23@googlemail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "dotenv": "^6.1.0",
+    "superagent": "^4.0.0-beta.5",
+    "yargs": "^12.0.2"
+  }
+}
