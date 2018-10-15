@@ -18,6 +18,8 @@ const getSessionCookie = () => 'MoodleSessionupblms=' + process.env.SESSION_COOK
 
 const syncDirectory = process.env.SYNC_DIRECTORY || './sync';
 
+const purifyCourseNameRegex = /^\w?(?:\.\w+)*[\t ](.+)$/i;
+const purifyCourseNamesFlag = !!process.env.PURIFY_COURSE_NAMES;
 
 
 if( argv.sessionKeepalive ) {
@@ -35,7 +37,8 @@ getCourses().then(courses => {
                 console.log('CRAWL: course ' + course + ' / folder ' + folder);
                 getFiles(folder).then(files => {
                     files.forEach(file => {
-                        console.log('DOWNLOAD: course ' + course + ' / folder ' + folder + ' / file ' + file.filename);
+                        //console.log('DOWNLOAD: course ' + course + ' / folder ' + folder + ' / file ' + file.file);
+                        console.log('DOWNLOAD: ' + file.course + ' / ' + file.folder + ' / ' + file.file);
                     });
                 });
             });
@@ -201,6 +204,21 @@ function extractFilesFromResponse(responseBody) {
     const urlTestRegex = /\/pluginfile\.php\/(?:[^/]+)\/mod_folder\/content(?:.*)\/([^/?]+)(?:\?.*)?$/i;
     const $ = cheerio.load(responseBody);
 
+    let   course = $('#page-header .page-header-headings').text();
+    const folder = $('#page-header .breadcrumb-item').last().text(); // not sure if working in all situations (robustness)
+
+    if( !course ) {
+        console.log("WARNING - course name is empty (tried selector $('#page-header .page-header-headings') on folder page)");
+    }
+    else {
+        if( purifyCourseNamesFlag ) {
+            course = purifyCourseNameRegex.exec(course)[1];
+        }
+    }
+    if( !folder ) {
+        console.log("WARNING - folder name is empty (tried selector $('#page-header .breadcrumb-item').last() on folder page)");
+    }
+
     let folderIds = $('#region-main .foldertree a')
         .map((i, elem) => $(elem).attr('href')) // cheerio/jQuery map function!
         .toArray()
@@ -214,8 +232,10 @@ function extractFilesFromResponse(responseBody) {
 
     folderIds = folderIds.map(url => {
         return {
-            'filename': urlTestRegex.exec(url)[1],
-            url
+            'file': urlTestRegex.exec(url)[1],
+            url,
+            folder,
+            course
         }
     });
 
