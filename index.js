@@ -249,7 +249,7 @@ function extractFilesFromResponse(responseBody) {
             url,
             folder,
             course
-        }
+        };
     });
 
     return folders;
