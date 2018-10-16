@@ -13,8 +13,8 @@ const baseUrl = 'https://panda.uni-paderborn.de';
 const urls = {
     getSessionKeepalive: () => baseUrl + '/my/',
     getIndex: () => baseUrl + '/my/?myoverviewtab=courses',
-    getCourseIndex: (courseId) => baseUrl + '/course/view.php?id=' + courseId,
-    getFolderIndex: (folderId) => baseUrl + '/mod/folder/view.php?id=' + folderId
+    getCourseIndex: courseId => baseUrl + '/course/view.php?id=' + courseId,
+    getFolderIndex: folderId => baseUrl + '/mod/folder/view.php?id=' + folderId
 };
 
 const getSessionCookie = () => 'MoodleSessionupblms=' + process.env.SESSION_COOKIE;
