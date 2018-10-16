@@ -38,11 +38,19 @@ getCourses().then(courses => {
             folders.forEach(folder => {
                 console.log('CRAWL: course ' + course + ' / folder ' + folder);
                 getFiles(folder).then(files => {
-                    files.forEach(file => {
-                        //console.log('DOWNLOAD: course ' + course + ' / folder ' + folder + ' / file ' + file.file);
-                        //console.log('DOWNLOAD: ' + file.course + ' / ' + file.folder + ' / ' + file.file);
-                        downloadFile(file.url, syncDirectory + '/' + file.course + '/' + file.folder + '/' + file.file);
-                    });
+                    const downloadFileSequentially = (files, index) => {
+                        if( index >= files.length ) return;
+
+                        const file = files[index];
+                        const destination = syncDirectory + '/' + file.course + '/' + file.folder + '/' + file.file;
+
+                        downloadFile(file.url, destination).then(
+                            () => downloadFileSequentially(files, index + 1),
+                            () => downloadFileSequentially(files, index + 1)
+                        );
+                    };
+
+                    downloadFileSequentially(files, 0);
                 });
             });
         });
@@ -285,7 +293,9 @@ function downloadFile(url, destination) {
                 response: 30 * 1000,
                 deadline: 60 * 1000
             })
-            .pipe(fileStream);
+            .pipe(fileStream)
+            .on('finish', resolve)
+            .on('error', reject);
     });
 }
 
