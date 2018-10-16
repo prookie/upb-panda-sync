@@ -5,6 +5,7 @@ const cheerio = require('cheerio');
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
 const path = require('path');
+const moment = require('moment');
 
 
 const baseUrl = 'https://panda.uni-paderborn.de';
@@ -44,7 +45,7 @@ getCourses().then(courses => {
                         const file = files[index];
                         const destination = syncDirectory + '/' + file.course + '/' + file.folder + '/' + file.file;
 
-                        downloadFile(file.url, destination).then(
+                        downloadChangedFile(file.url, destination).then(
                             () => downloadFileSequentially(files, index + 1),
                             () => downloadFileSequentially(files, index + 1)
                         );
@@ -236,10 +237,8 @@ function extractFilesFromResponse(responseBody) {
     let folderUrls = $('#region-main .foldertree a')
         .map((i, elem) => $(elem).attr('href')) // cheerio/jQuery map function!
         .toArray()
-        //.map(elem => {console.log('MATCH ' + elem); return elem})
         .map(elem => elem.split('?', 2)[0])
         .filter(url => urlTestRegex.test(url))
-        //.map(url => parseInt(urlTestRegex.exec(url)[1]));
 
     // filter out possible duplicates
     folderUrls = folderUrls.filter((elem, pos) => folderUrls.indexOf(elem) == pos);
@@ -280,7 +279,7 @@ function performSessionKeepalive() {
 
 
 function downloadFile(url, destination) {
-    console.log('DOWNLOAD: ' + url + ' INTO ' + destination);
+    //console.log('DOWNLOAD: ' + url + ' INTO ' + destination);
 
     ensureDirectoryExistence(destination);
 
@@ -296,6 +295,53 @@ function downloadFile(url, destination) {
             .pipe(fileStream)
             .on('finish', resolve)
             .on('error', reject);
+    });
+}
+
+function downloadChangedFile(url, destination) {
+    ensureDirectoryExistence(destination);
+
+    return new Promise((resolve, reject) => {
+        fs.stat(destination, (err, stats) => {
+            if( err ) {
+                // file does not exist, just download
+                downloadFile(url, destination).then(res => {
+                    console.log('FILE WAS DOWNLOADED BECAUSE MISSING LOCALLY: ' + destination);
+                    resolve(res);
+                }, reject);
+                return;
+            }
+
+            // file does exist, check if older than version on server
+            request.head(url)
+                .set('Cookie', getSessionCookie())
+                .timeout(30 * 1000)
+                .retry(3)
+                .then(res => {
+                    if( !res.header['last-modified'] ) {
+                        // TODO: log / send mail? no Last-Modified header gets sent, this is problematic
+                        console.log('WARNING: no Last-Modified header was sent by ' + url);
+                        reject();
+                        return;
+                    }
+
+                    if( moment(stats.mtime).isAfter(res.header['last-modified']) ) {
+                        // local file is newer than server version, skip
+                        resolve();
+                        return;
+                    }
+
+                    // local file is older than server version, download
+                    downloadFile(url, destination).then(res => {
+                        console.log('FILE WAS DOWNLOADED AGAIN BECAUSE THERE IS A NEWER VERSION ON PANDA: ' + destination);
+                        resolve(res);
+                    }, reject);
+
+                })
+                .catch(reject);
+
+
+        });
     });
 }
 
