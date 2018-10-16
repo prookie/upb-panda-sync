@@ -238,7 +238,7 @@ function extractFilesFromResponse(responseBody) {
         .map((i, elem) => $(elem).attr('href')) // cheerio/jQuery map function!
         .toArray()
         .map(elem => elem.split('?', 2)[0])
-        .filter(url => urlTestRegex.test(url))
+        .filter(url => urlTestRegex.test(url));
 
     // filter out possible duplicates
     folderUrls = folderUrls.filter((elem, pos) => folderUrls.indexOf(elem) == pos);
