@@ -19,7 +19,7 @@ const urls = {
 
 const getSessionCookie = () => 'MoodleSessionupblms=' + process.env.SESSION_COOKIE;
 
-const syncDirectory = process.env.SYNC_DIRECTORY || './sync';
+const syncDirectory = process.env.SYNC_DIRECTORY || path.resolve(__dirname, 'sync');
 
 const purifyCourseNameRegex = /^\w?(?:\.\w+)*[\t ](.+)$/i;
 const purifyCourseNamesFlag = !!process.env.PURIFY_COURSE_NAMES;
@@ -43,7 +43,7 @@ getCourses().then(courses => {
                         if( index >= files.length ) return;
 
                         const file = files[index];
-                        const destination = syncDirectory + '/' + file.course + '/' + file.folder + '/' + file.file;
+                        const destination = path.resolve(syncDirectory, file.course, file.folder, file.file);
 
                         downloadChangedFile(file.url, destination).then(
                             () => downloadFileSequentially(files, index + 1),
