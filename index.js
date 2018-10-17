@@ -1,10 +1,10 @@
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config({path: path.resolve(__dirname, '.env')})
 const argv = require('yargs').argv;
 const request = require('superagent');
 const cheerio = require('cheerio');
 const sanitize = require('sanitize-filename');
-const fs = require('fs');
-const path = require('path');
 const moment = require('moment');
 
 
