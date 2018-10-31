@@ -1,8 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({
-    path: path.resolve(__dirname, '.env')
-})
+require('dotenv').config({path: path.resolve(__dirname, '.env')})
 const argv = require('yargs').argv;
 const request = require('superagent');
 const cheerio = require('cheerio');
@@ -27,7 +25,7 @@ const purifyCourseNameRegex = /^\w?(?:\.\w+)*[\t ](.+)$/i;
 const purifyCourseNamesFlag = !!process.env.PURIFY_COURSE_NAMES;
 
 
-if (argv.sessionKeepalive) {
+if( argv.sessionKeepalive ) {
     performSessionKeepalive();
     return;
 }
@@ -42,13 +40,14 @@ getCourses().then(courses => {
                 console.log('CRAWL: course ' + course + ' / folder ' + folder);
                 getFiles(folder).then(files => {
                     const downloadFileSequentially = (files, index) => {
-                        if (index >= files.length) return;
+                        if( index >= files.length ) return;
 
                         const file = files[index];
                         const destination = path.resolve(syncDirectory, file.course, file.folder, file.file);
 
                         downloadChangedFile(file.url, destination).then(
-                            () => downloadFileSequentially(files, index + 1), () => downloadFileSequentially(files, index + 1)
+                            () => downloadFileSequentially(files, index + 1),
+                            () => downloadFileSequentially(files, index + 1)
                         );
                     };
 
@@ -72,7 +71,7 @@ function getCourses() {
             .timeout(30 * 1000)
             .retry(3)
             .then(res => {
-                if (res.statusType == 2) {
+                if( res.statusType == 2 ) {
                     //console.log('getCourses response: ' + res.request.url);
 
                     let courses = null;
@@ -80,14 +79,16 @@ function getCourses() {
                         courses = extractCoursesFromResponse(res.text);
 
                         // TODO: implement whitelisting/blacklisting here
-                    } catch (e) {
+                    }
+                    catch( e ) {
                         console.log(e);
                         reject();
                         return;
                     }
 
                     resolve(courses);
-                } else {
+                }
+                else {
                     // wtf?
                     // TODO: handle session expiration, maybe log / send mail?
                     console.log(res.request.url);
@@ -101,7 +102,6 @@ function getCourses() {
             });
     });
 }
-
 function extractCoursesFromResponse(responseBody) {
     const urlTestRegex = /\/course\/view\.php(?:\?.*&|\?)id=(\d+)/i;
     const $ = cheerio.load(responseBody);
@@ -126,7 +126,7 @@ function getFolders(courseId) {
             .timeout(30 * 1000)
             .retry(3)
             .then(res => {
-                if (res.statusType == 2) {
+                if( res.statusType == 2 ) {
                     //console.log('getFolders response: ' + res.request.url);
 
                     let folders = null;
@@ -134,14 +134,16 @@ function getFolders(courseId) {
                         folders = extractFoldersFromResponse(res.text);
 
                         // TODO: implement whitelisting/blacklisting here
-                    } catch (e) {
+                    }
+                    catch( e ) {
                         console.log(e);
                         reject();
                         return;
                     }
 
                     resolve(folders);
-                } else {
+                }
+                else {
                     // wtf?
                     // TODO: handle session expiration, maybe log / send mail?
                     console.log(res.request.url);
@@ -155,7 +157,6 @@ function getFolders(courseId) {
             });
     });
 }
-
 function extractFoldersFromResponse(responseBody) {
     const urlTestRegex = /\/mod\/folder\/view\.php(?:\?.*&|\?)id=(\d+)/i;
     const $ = cheerio.load(responseBody);
@@ -180,20 +181,22 @@ function getFiles(folderId) {
             .timeout(30 * 1000)
             .retry(3)
             .then(res => {
-                if (res.statusType == 2) {
+                if( res.statusType == 2 ) {
                     //console.log('getFiles response: ' + res.request.url);
 
                     let files = null;
                     try {
                         files = extractFilesFromResponse(res.text);
-                    } catch (e) {
+                    }
+                    catch( e ) {
                         console.log(e);
                         reject();
                         return;
                     }
 
                     resolve(files);
-                } else {
+                }
+                else {
                     // wtf?
                     // TODO: handle session expiration, maybe log / send mail?
                     console.log(res.request.url);
@@ -207,7 +210,6 @@ function getFiles(folderId) {
             });
     });
 }
-
 function extractFilesFromResponse(responseBody) {
     const urlTestRegex = /\/pluginfile\.php\/(?:[^/]+)\/mod_folder\/content(?:.*)\/([^/?]+)(?:\?.*)?$/i;
     const $ = cheerio.load(responseBody);
@@ -215,18 +217,20 @@ function extractFilesFromResponse(responseBody) {
     let course = $('#page-header .page-header-headings').text();
     let folder = $('#page-header .breadcrumb-item').last().text(); // not sure if working in all situations (robustness)
 
-    if (!course) {
+    if( !course ) {
         console.log("WARNING - course name is empty (tried selector $('#page-header .page-header-headings') on folder page)");
-    } else {
-        if (purifyCourseNamesFlag) {
+    }
+    else {
+        if( purifyCourseNamesFlag ) {
             course = purifyCourseNameRegex.exec(course)[1];
         }
 
         course = sanitize(course);
     }
-    if (!folder) {
+    if( !folder ) {
         console.log("WARNING - folder name is empty (tried selector $('#page-header .breadcrumb-item').last() on folder page)");
-    } else {
+    }
+    else {
         folder = sanitize(folder);
     }
 
@@ -258,9 +262,10 @@ function performSessionKeepalive() {
         .timeout(30 * 1000)
         .retry(3)
         .then(res => {
-            if (res.statusType == 2) {
+            if( res.statusType == 2 ) {
 
-            } else {
+            }
+            else {
                 // wtf?
                 // TODO: handle session expiration, maybe log / send mail?
                 console.log(res.req.path);
@@ -298,7 +303,7 @@ function downloadChangedFile(url, destination) {
 
     return new Promise((resolve, reject) => {
         fs.stat(destination, (err, stats) => {
-            if (err) {
+            if( err ) {
                 // file does not exist, just download
                 downloadFile(url, destination).then(res => {
                     console.log('FILE WAS DOWNLOADED BECAUSE MISSING LOCALLY: ' + destination);
@@ -313,14 +318,14 @@ function downloadChangedFile(url, destination) {
                 .timeout(30 * 1000)
                 .retry(3)
                 .then(res => {
-                    if (!res.header['last-modified']) {
+                    if( !res.header['last-modified'] ) {
                         // TODO: log / send mail? no Last-Modified header gets sent, this is problematic
                         console.log('WARNING: no Last-Modified header was sent by ' + url);
                         reject();
                         return;
                     }
 
-                    if (moment(stats.mtime).isAfter(res.header['last-modified'])) {
+                    if( moment(stats.mtime).isAfter(res.header['last-modified']) ) {
                         // local file is newer than server version, skip
                         resolve();
                         return;
@@ -345,7 +350,7 @@ function downloadChangedFile(url, destination) {
  */
 function ensureDirectoryExistence(filePath) {
     const dirname = path.dirname(filePath);
-    if (fs.existsSync(dirname)) {
+    if( fs.existsSync(dirname) ) {
         return true;
     }
     ensureDirectoryExistence(dirname);
@@ -356,10 +361,11 @@ function handleResponseCatch(err) {
     console.log(err.response.request.url);
     console.log('request catched');
     console.log(err.status);
-    if (err.status >= 300 && err.status < 500) {
+    if( err.status >= 300 && err.status < 500 ) {
         // session expired
         // TODO: handle session expiration, maybe log / send mail?
-    } else {
+    }
+    else {
         // other unknown error
         // TODO: handle session expiration, maybe log / send mail?
     }
